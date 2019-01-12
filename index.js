@@ -122,7 +122,7 @@ SimpleExchange.prototype.isSubscribed = function (channelName, includePending) {
 };
 
 
-function SCSimpleBroker() {
+function AGSimpleBroker() {
   AsyncStreamEmitter.call(this);
 
   this.isReady = false;
@@ -136,13 +136,13 @@ function SCSimpleBroker() {
   }, 0);
 }
 
-SCSimpleBroker.prototype = Object.create(AsyncStreamEmitter.prototype);
+AGSimpleBroker.prototype = Object.create(AsyncStreamEmitter.prototype);
 
-SCSimpleBroker.prototype.exchange = function () {
+AGSimpleBroker.prototype.exchange = function () {
   return this._exchangeClient;
 };
 
-SCSimpleBroker.prototype.subscribeSocket = function (socket, channelName) {
+AGSimpleBroker.prototype.subscribeSocket = function (socket, channelName) {
   if (!this._clientSubscribers[channelName]) {
     this._clientSubscribers[channelName] = {};
     this._clientSubscribersCounter[channelName] = 0;
@@ -157,7 +157,7 @@ SCSimpleBroker.prototype.subscribeSocket = function (socket, channelName) {
   return Promise.resolve();
 };
 
-SCSimpleBroker.prototype.unsubscribeSocket = function (socket, channelName) {
+AGSimpleBroker.prototype.unsubscribeSocket = function (socket, channelName) {
   if (this._clientSubscribers[channelName]) {
     if (this._clientSubscribers[channelName][socket.id]) {
       this._clientSubscribersCounter[channelName]--;
@@ -175,15 +175,15 @@ SCSimpleBroker.prototype.unsubscribeSocket = function (socket, channelName) {
   return Promise.resolve();
 };
 
-SCSimpleBroker.prototype.subscriptions = function () {
+AGSimpleBroker.prototype.subscriptions = function () {
   return Object.keys(this._clientSubscribers);
 };
 
-SCSimpleBroker.prototype.isSubscribed = function (channelName) {
+AGSimpleBroker.prototype.isSubscribed = function (channelName) {
   return !!this._clientSubscribers[channelName];
 };
 
-SCSimpleBroker.prototype.publish = function (channelName, data, suppressEvent) {
+AGSimpleBroker.prototype.publish = function (channelName, data, suppressEvent) {
   let packet = {
     channel: channelName,
     data
@@ -200,4 +200,4 @@ SCSimpleBroker.prototype.publish = function (channelName, data, suppressEvent) {
   return Promise.resolve();
 };
 
-module.exports = SCSimpleBroker;
+module.exports = AGSimpleBroker;
