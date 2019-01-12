@@ -1,6 +1,6 @@
 const AsyncStreamEmitter = require('async-stream-emitter');
 const StreamDemux = require('stream-demux');
-var SCChannel = require('sc-channel');
+let AGChannel = require('ag-channel');
 
 function SimpleExchange(broker) {
   AsyncStreamEmitter.call(this);
@@ -26,7 +26,7 @@ SimpleExchange.prototype.destroy = function () {
 SimpleExchange.prototype._triggerChannelSubscribe = function (channel) {
   let channelName = channel.name;
 
-  channel.state = SCChannel.SUBSCRIBED;
+  channel.state = AGChannel.SUBSCRIBED;
 
   this._channelEventDemux.write(`${channelName}/subscribe`, {});
   this.emit('subscribe', {channel: channelName});
@@ -36,7 +36,7 @@ SimpleExchange.prototype._triggerChannelUnsubscribe = function (channel) {
   let channelName = channel.name;
 
   delete this._channelMap[channelName];
-  if (channel.state === SCChannel.SUBSCRIBED) {
+  if (channel.state === AGChannel.SUBSCRIBED) {
     this._channelEventDemux.write(`${channelName}/unsubscribe`, {});
     this.emit('unsubscribe', {channel: channelName});
   }
@@ -52,14 +52,14 @@ SimpleExchange.prototype.subscribe = function (channelName) {
   if (!channel) {
     channel = {
       name: channelName,
-      state: SCChannel.PENDING
+      state: AGChannel.PENDING
     };
     this._channelMap[channelName] = channel;
     this._triggerChannelSubscribe(channel);
   }
 
   let channelDataStream = this._channelDataDemux.stream(channelName);
-  let channelIterable = new SCChannel(
+  let channelIterable = new AGChannel(
     channelName,
     this,
     this._channelEventDemux,
@@ -69,7 +69,7 @@ SimpleExchange.prototype.subscribe = function (channelName) {
   return channelIterable;
 };
 
-SimpleExchange.prototype.unsubscribe = function (channelName) {
+SimpleExchange.prototype.unsubscribe = async function (channelName) {
   let channel = this._channelMap[channelName];
 
   if (channel) {
@@ -81,7 +81,7 @@ SimpleExchange.prototype.channel = function (channelName) {
   let currentChannel = this._channelMap[channelName];
 
   let channelDataStream = this._channelDataDemux.stream(channelName);
-  let channelIterable = new SCChannel(
+  let channelIterable = new AGChannel(
     channelName,
     this,
     this._channelEventDemux,
@@ -96,7 +96,7 @@ SimpleExchange.prototype.getChannelState = function (channelName) {
   if (channel) {
     return channel.state;
   }
-  return SCChannel.UNSUBSCRIBED;
+  return AGChannel.UNSUBSCRIBED;
 };
 
 SimpleExchange.prototype.getChannelOptions = function (channelName) {
@@ -106,7 +106,7 @@ SimpleExchange.prototype.getChannelOptions = function (channelName) {
 SimpleExchange.prototype.subscriptions = function (includePending) {
   let subs = [];
   Object.keys(this._channelMap).forEach((channelName) => {
-    if (includePending || this._channelMap[channelName].state === SCChannel.SUBSCRIBED) {
+    if (includePending || this._channelMap[channelName].state === AGChannel.SUBSCRIBED) {
       subs.push(channelName);
     }
   });
@@ -118,7 +118,7 @@ SimpleExchange.prototype.isSubscribed = function (channelName, includePending) {
   if (includePending) {
     return !!channel;
   }
-  return !!channel && channel.state === SCChannel.SUBSCRIBED;
+  return !!channel && channel.state === AGChannel.SUBSCRIBED;
 };
 
 
@@ -142,7 +142,7 @@ AGSimpleBroker.prototype.exchange = function () {
   return this._exchangeClient;
 };
 
-AGSimpleBroker.prototype.subscribeSocket = function (socket, channelName) {
+AGSimpleBroker.prototype.subscribeSocket = async function (socket, channelName) {
   if (!this._clientSubscribers[channelName]) {
     this._clientSubscribers[channelName] = {};
     this._clientSubscribersCounter[channelName] = 0;
@@ -154,10 +154,9 @@ AGSimpleBroker.prototype.subscribeSocket = function (socket, channelName) {
     });
   }
   this._clientSubscribers[channelName][socket.id] = socket;
-  return Promise.resolve();
 };
 
-AGSimpleBroker.prototype.unsubscribeSocket = function (socket, channelName) {
+AGSimpleBroker.prototype.unsubscribeSocket = async function (socket, channelName) {
   if (this._clientSubscribers[channelName]) {
     if (this._clientSubscribers[channelName][socket.id]) {
       this._clientSubscribersCounter[channelName]--;
@@ -172,7 +171,6 @@ AGSimpleBroker.prototype.unsubscribeSocket = function (socket, channelName) {
       }
     }
   }
-  return Promise.resolve();
 };
 
 AGSimpleBroker.prototype.subscriptions = function () {
@@ -183,12 +181,12 @@ AGSimpleBroker.prototype.isSubscribed = function (channelName) {
   return !!this._clientSubscribers[channelName];
 };
 
-AGSimpleBroker.prototype.publish = function (channelName, data, suppressEvent) {
+AGSimpleBroker.prototype.publish = async function (channelName, data, suppressEvent) {
   let packet = {
     channel: channelName,
     data
   };
-  var subscriberSockets = this._clientSubscribers[channelName] || {};
+  let subscriberSockets = this._clientSubscribers[channelName] || {};
 
   Object.keys(subscriberSockets).forEach((i) => {
     subscriberSockets[i].transmit('#publish', packet);
@@ -197,7 +195,6 @@ AGSimpleBroker.prototype.publish = function (channelName, data, suppressEvent) {
   if (!suppressEvent) {
     this.emit('publish', packet);
   }
-  return Promise.resolve();
 };
 
 module.exports = AGSimpleBroker;
