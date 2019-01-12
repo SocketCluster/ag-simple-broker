@@ -1,2 +1,2 @@
-# sc-simple-broker
-Simple broker engine for socketcluster-server
+# ag-simple-broker
+Simple broker engine for Asyngular
