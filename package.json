@@ -1,6 +1,6 @@
 {
   "name": "ag-simple-broker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple broker engine for Asyngular",
   "main": "index.js",
   "scripts": {

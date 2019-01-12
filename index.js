@@ -200,4 +200,4 @@ SCSimpleBroker.prototype.publish = function (channelName, data, suppressEvent) {
   return Promise.resolve();
 };
 
-module.exports.SCSimpleBroker = SCSimpleBroker;
+module.exports = SCSimpleBroker;
