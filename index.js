@@ -126,6 +126,7 @@ function AGSimpleBroker() {
   AsyncStreamEmitter.call(this);
 
   this.isReady = false;
+  this._codec = null;
   this._exchangeClient = new SimpleExchange(this);
   this._clientSubscribers = {};
   this._clientSubscribersCounter = {};
@@ -181,15 +182,34 @@ AGSimpleBroker.prototype.isSubscribed = function (channelName) {
   return !!this._clientSubscribers[channelName];
 };
 
+AGSimpleBroker.prototype.setCodecEngine = function (codec) {
+  this._codec = codec;
+};
+
 AGSimpleBroker.prototype.publish = async function (channelName, data, suppressEvent) {
   let packet = {
     channel: channelName,
     data
   };
+  let transmitOptions = {};
+
+  if (this._codec) {
+    // Optimization
+    try {
+      transmitOptions.stringifiedData = this._codec.encode({
+        event: '#publish',
+        data: packet
+      });
+    } catch (error) {
+      this.emit('error', {error});
+      return;
+    }
+  }
+
   let subscriberSockets = this._clientSubscribers[channelName] || {};
 
   Object.keys(subscriberSockets).forEach((i) => {
-    subscriberSockets[i].transmit('#publish', packet);
+    subscriberSockets[i].transmit('#publish', packet, transmitOptions);
   });
 
   if (!suppressEvent) {
