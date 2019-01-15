@@ -42,8 +42,12 @@ SimpleExchange.prototype._triggerChannelUnsubscribe = function (channel) {
   }
 };
 
-SimpleExchange.prototype.publish = function (channelName, data) {
-  return this._broker.publish(channelName, data);
+SimpleExchange.prototype.transmitPublish = async function (channelName, data) {
+  return this._broker.transmitPublish(channelName, data);
+};
+
+SimpleExchange.prototype.invokePublish = async function (channelName, data) {
+  return this._broker.invokePublish(channelName, data);
 };
 
 SimpleExchange.prototype.subscribe = function (channelName) {
@@ -186,7 +190,13 @@ AGSimpleBroker.prototype.setCodecEngine = function (codec) {
   this._codec = codec;
 };
 
-AGSimpleBroker.prototype.publish = async function (channelName, data, suppressEvent) {
+// In this implementation of the broker engine, both invokePublish and transmitPublish
+// methods are the same. In alternative implementations, they could be different.
+AGSimpleBroker.prototype.invokePublish = async function (channelName, data, suppressEvent) {
+  return this.transmitPublish(channelName, data, suppressEvent);
+};
+
+AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, suppressEvent) {
   let packet = {
     channel: channelName,
     data
