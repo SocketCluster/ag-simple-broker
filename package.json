@@ -1,6 +1,6 @@
 {
   "name": "ag-simple-broker",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Simple broker engine for Asyngular",
   "main": "index.js",
   "scripts": {
@@ -15,8 +15,8 @@
   "author": "Jonathan Gros-Dubois <grosjona@yahoo.com.au>",
   "license": "MIT",
   "dependencies": {
-    "async-stream-emitter": "^2.0.0",
-    "ag-channel": "^3.0.0",
-    "stream-demux": "^5.1.0"
+    "async-stream-emitter": "^2.1.0",
+    "ag-channel": "^3.1.0",
+    "stream-demux": "^6.1.0"
   }
 }
