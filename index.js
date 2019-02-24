@@ -19,6 +19,13 @@ function SimpleExchange(broker) {
 
 SimpleExchange.prototype = Object.create(AsyncStreamEmitter.prototype);
 
+SimpleExchange.prototype.getBackpressure = function () {
+  return Math.max(
+    this.getAllListenersBackpressure(),
+    this.getAllChannelsBackpressure()
+  );
+};
+
 SimpleExchange.prototype.destroy = function () {
   this._broker.closeAllListeners();
 };
