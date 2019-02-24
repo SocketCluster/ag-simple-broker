@@ -95,6 +95,58 @@ SimpleExchange.prototype.channel = function (channelName) {
   return channelIterable;
 };
 
+SimpleExchange.prototype.closeChannel = function (channelName) {
+  this._channelDataDemux.close(channelName);
+};
+
+SimpleExchange.prototype.closeAllChannels = function () {
+  this._channelDataDemux.closeAll();
+};
+
+SimpleExchange.prototype.killChannel = function (channelName) {
+  this._channelDataDemux.kill(channelName);
+};
+
+SimpleExchange.prototype.killAllChannels = function () {
+  this._channelDataDemux.killAll();
+};
+
+SimpleExchange.prototype.killChannelConsumer = function (consumerId) {
+  this._channelDataDemux.killConsumer(consumerId);
+};
+
+SimpleExchange.prototype.getChannelConsumerStats = function (consumerId) {
+  return this._channelDataDemux.getConsumerStats(consumerId);
+};
+
+SimpleExchange.prototype.getChannelConsumerStatsList = function (channelName) {
+  return this._channelDataDemux.getConsumerStatsList(channelName);
+};
+
+SimpleExchange.prototype.getAllChannelsConsumerStatsList = function () {
+  return this._channelDataDemux.getConsumerStatsListAll();
+};
+
+SimpleExchange.prototype.getChannelBackpressure = function (channelName) {
+  return this._channelDataDemux.getBackpressure(channelName);
+};
+
+SimpleExchange.prototype.getAllChannelsBackpressure = function () {
+  return this._channelDataDemux.getBackpressureAll();
+};
+
+SimpleExchange.prototype.getChannelConsumerBackpressure = function (consumerId) {
+  return this._channelDataDemux.getConsumerBackpressure(consumerId);
+};
+
+SimpleExchange.prototype.hasChannelConsumer = function (channelName, consumerId) {
+  return this._channelDataDemux.hasConsumer(channelName, consumerId);
+};
+
+SimpleExchange.prototype.hasAnyChannelConsumer = function (consumerId) {
+  return this._channelDataDemux.hasConsumerAll(consumerId);
+};
+
 SimpleExchange.prototype.getChannelState = function (channelName) {
   let channel = this._channelMap[channelName];
   if (channel) {
