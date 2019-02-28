@@ -69,12 +69,11 @@ SimpleExchange.prototype.subscribe = function (channelName) {
     this._triggerChannelSubscribe(channel);
   }
 
-  let channelDataStream = this._channelDataDemux.stream(channelName);
   let channelIterable = new AGChannel(
     channelName,
     this,
     this._channelEventDemux,
-    channelDataStream
+    this._channelDataDemux
   );
 
   return channelIterable;
@@ -91,67 +90,195 @@ SimpleExchange.prototype.unsubscribe = async function (channelName) {
 SimpleExchange.prototype.channel = function (channelName) {
   let currentChannel = this._channelMap[channelName];
 
-  let channelDataStream = this._channelDataDemux.stream(channelName);
   let channelIterable = new AGChannel(
     channelName,
     this,
     this._channelEventDemux,
-    channelDataStream
+    this._channelDataDemux
   );
 
   return channelIterable;
 };
 
-SimpleExchange.prototype.closeChannel = function (channelName) {
+SimpleExchange.prototype.closeChannelData = function (channelName) {
   this._channelDataDemux.close(channelName);
 };
 
-SimpleExchange.prototype.closeAllChannels = function () {
+SimpleExchange.prototype.closeChannelListener = function (channelName, eventName) {
+  this._channelEventDemux.close(`${channelName}/${eventName}`);
+};
+
+SimpleExchange.prototype.closeAllChannelListeners = function (channelName) {
+  this.closeChannelListener(channelName, 'kickOut');
+  this.closeChannelListener(channelName, 'subscribeStateChange');
+  this.closeChannelListener(channelName, 'subscribe');
+  this.closeChannelListener(channelName, 'subscribeFail');
+  this.closeChannelListener(channelName, 'unsubscribe');
+};
+
+SimpleExchange.prototype.closeChannel = function (channelName) {
+  this.closeChannelData(channelName);
+  this.closeAllChannelListeners(channelName);
+};
+
+SimpleExchange.prototype.closeAllChannelsData = function () {
   this._channelDataDemux.closeAll();
 };
 
-SimpleExchange.prototype.killChannel = function (channelName) {
+SimpleExchange.prototype.closeAllChannelsListeners = function () {
+  this._channelEventDemux.closeAll();
+};
+
+SimpleExchange.prototype.closeAllChannels = function () {
+  this.closeAllChannelsData();
+  this.closeAllChannelsListeners();
+};
+
+SimpleExchange.prototype.killChannelData = function (channelName) {
   this._channelDataDemux.kill(channelName);
 };
 
-SimpleExchange.prototype.killAllChannels = function () {
+SimpleExchange.prototype.killChannelListener = function (channelName, eventName) {
+  this._channelEventDemux.kill(`${channelName}/${eventName}`);
+};
+
+SimpleExchange.prototype.killAllChannelListeners = function (channelName) {
+  this.killChannelListener(channelName, 'kickOut');
+  this.killChannelListener(channelName, 'subscribeStateChange');
+  this.killChannelListener(channelName, 'subscribe');
+  this.killChannelListener(channelName, 'subscribeFail');
+  this.killChannelListener(channelName, 'unsubscribe');
+};
+
+SimpleExchange.prototype.killChannel = function (channelName) {
+  this.killChannelData(channelName);
+  this.killAllChannelListeners(channelName);
+};
+
+SimpleExchange.prototype.killAllChannelsData = function () {
   this._channelDataDemux.killAll();
 };
 
-SimpleExchange.prototype.killChannelConsumer = function (consumerId) {
+SimpleExchange.prototype.killAllChannelsListeners = function () {
+  this._channelEventDemux.killAll();
+};
+
+SimpleExchange.prototype.killAllChannels = function () {
+  this.killAllChannelsData();
+  this.killAllChannelsListeners();
+};
+
+SimpleExchange.prototype.killChannelDataConsumer = function (consumerId) {
   this._channelDataDemux.killConsumer(consumerId);
 };
 
-SimpleExchange.prototype.getChannelConsumerStats = function (consumerId) {
+SimpleExchange.prototype.killChannelListenerConsumer = function (consumerId) {
+  this._channelEventDemux.killConsumer(consumerId);
+};
+
+SimpleExchange.prototype.getChannelDataConsumerStats = function (consumerId) {
   return this._channelDataDemux.getConsumerStats(consumerId);
 };
 
-SimpleExchange.prototype.getChannelConsumerStatsList = function (channelName) {
+SimpleExchange.prototype.getChannelListenerConsumerStats = function (consumerId) {
+  return this._channelEventDemux.getConsumerStats(consumerId);
+};
+
+SimpleExchange.prototype.getChannelDataConsumerStatsList = function (channelName) {
   return this._channelDataDemux.getConsumerStatsList(channelName);
 };
 
-SimpleExchange.prototype.getAllChannelsConsumerStatsList = function () {
+SimpleExchange.prototype.getChannelListenerConsumerStatsList = function (channelName, eventName) {
+  return this._channelEventDemux.getConsumerStatsList(`${channelName}/${eventName}`);
+};
+
+SimpleExchange.prototype.getAllChannelListenerConsumerStatsList = function (channelName) {
+  return this.getChannelListenerConsumerStatsList(channelName, 'kickOut').concat(
+    this.getChannelListenerConsumerStatsList(channelName, 'subscribeStateChange'),
+    this.getChannelListenerConsumerStatsList(channelName, 'subscribe'),
+    this.getChannelListenerConsumerStatsList(channelName, 'subscribeFail'),
+    this.getChannelListenerConsumerStatsList(channelName, 'unsubscribe')
+  );
+};
+
+SimpleExchange.prototype.getAllChannelsDataConsumerStatsList = function () {
   return this._channelDataDemux.getConsumerStatsListAll();
 };
 
-SimpleExchange.prototype.getChannelBackpressure = function (channelName) {
+SimpleExchange.prototype.getAllChannelsListenerConsumerStatsList = function () {
+  return this._channelEventDemux.getConsumerStatsListAll();
+};
+
+SimpleExchange.prototype.getChannelDataBackpressure = function (channelName) {
   return this._channelDataDemux.getBackpressure(channelName);
 };
 
-SimpleExchange.prototype.getAllChannelsBackpressure = function () {
+SimpleExchange.prototype.getChannelListenerBackpressure = function (channelName, eventName) {
+  return this._channelEventDemux.getBackpressure(`${channelName}/${eventName}`);
+};
+
+SimpleExchange.prototype.getAllChannelListenersBackpressure = function (channelName) {
+  return Math.max(
+    this.getChannelListenerBackpressure(channelName, 'kickOut'),
+    this.getChannelListenerBackpressure(channelName, 'subscribeStateChange'),
+    this.getChannelListenerBackpressure(channelName, 'subscribe'),
+    this.getChannelListenerBackpressure(channelName, 'subscribeFail'),
+    this.getChannelListenerBackpressure(channelName, 'unsubscribe')
+  );
+};
+
+SimpleExchange.prototype.getChannelBackpressure = function (channelName) {
+  return Math.max(
+    this.getChannelDataBackpressure(channelName),
+    this.getAllChannelListenersBackpressure(channelName),
+  );
+};
+
+SimpleExchange.prototype.getAllChannelsDataBackpressure = function () {
   return this._channelDataDemux.getBackpressureAll();
 };
 
-SimpleExchange.prototype.getChannelConsumerBackpressure = function (consumerId) {
+SimpleExchange.prototype.getAllChannelsListenersBackpressure = function () {
+  return this._channelEventDemux.getBackpressureAll();
+};
+
+SimpleExchange.prototype.getAllChannelsBackpressure = function () {
+  return Math.max(
+    this.getAllChannelsDataBackpressure(),
+    this.getAllChannelsListenersBackpressure()
+  );
+};
+
+SimpleExchange.prototype.getChannelDataConsumerBackpressure = function (consumerId) {
   return this._channelDataDemux.getConsumerBackpressure(consumerId);
 };
 
-SimpleExchange.prototype.hasChannelConsumer = function (channelName, consumerId) {
+SimpleExchange.prototype.getChannelListenerConsumerBackpressure = function (consumerId) {
+  return this._channelEventDemux.getConsumerBackpressure(consumerId);
+};
+
+SimpleExchange.prototype.hasChannelDataConsumer = function (channelName, consumerId) {
   return this._channelDataDemux.hasConsumer(channelName, consumerId);
 };
 
-SimpleExchange.prototype.hasAnyChannelConsumer = function (consumerId) {
+SimpleExchange.prototype.hasChannelListenerConsumer = function (channelName, eventName, consumerId) {
+  return this._channelEventDemux.hasConsumer(`${channelName}/${eventName}`, consumerId);
+};
+
+SimpleExchange.prototype.hasAnyChannelListenerConsumer = function (channelName, consumerId) {
+  return this.hasChannelListenerConsumer(channelName, 'kickOut', consumerId) ||
+    this.hasChannelListenerConsumer(channelName, 'subscribeStateChange', consumerId) ||
+    this.hasChannelListenerConsumer(channelName, 'subscribe', consumerId) ||
+    this.hasChannelListenerConsumer(channelName, 'subscribeFail', consumerId) ||
+    this.hasChannelListenerConsumer(channelName, 'unsubscribe', consumerId);
+};
+
+SimpleExchange.prototype.hasAnyChannelDataConsumer = function (consumerId) {
   return this._channelDataDemux.hasConsumerAll(consumerId);
+};
+
+SimpleExchange.prototype.hasAnyChannelsListenerConsumer = function (consumerId) {
+  return this._channelEventDemux.hasConsumerAll(consumerId);
 };
 
 SimpleExchange.prototype.getChannelState = function (channelName) {
