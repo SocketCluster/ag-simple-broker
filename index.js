@@ -5,19 +5,20 @@ let AGChannel = require('ag-channel');
 function SimpleExchange(broker) {
   AsyncStreamEmitter.call(this);
 
+  this.id = 'exchange';
   this._broker = broker;
   this._channelMap = {};
   this._channelEventDemux = new StreamDemux();
   this._channelDataDemux = new StreamDemux();
-
-  (async () => {
-    for await (let {channel, data} of this._broker.listener('publish')) {
-      this._channelDataDemux.write(channel, data);
-    }
-  })();
 }
 
 SimpleExchange.prototype = Object.create(AsyncStreamEmitter.prototype);
+
+SimpleExchange.prototype.transmit = function (event, packet) {
+  if (event === '#publish') {
+    this._channelDataDemux.write(packet.channel, packet.data);
+  }
+};
 
 SimpleExchange.prototype.getBackpressure = function () {
   return Math.max(
@@ -36,6 +37,7 @@ SimpleExchange.prototype._triggerChannelSubscribe = function (channel) {
   channel.state = AGChannel.SUBSCRIBED;
 
   this._channelEventDemux.write(`${channelName}/subscribe`, {});
+  this._broker.subscribeClient(this, channelName);
   this.emit('subscribe', {channel: channelName});
 };
 
@@ -45,6 +47,7 @@ SimpleExchange.prototype._triggerChannelUnsubscribe = function (channel) {
   delete this._channelMap[channelName];
   if (channel.state === AGChannel.SUBSCRIBED) {
     this._channelEventDemux.write(`${channelName}/unsubscribe`, {});
+    this._broker.unsubscribeClient(this, channelName);
     this.emit('unsubscribe', {channel: channelName});
   }
 };
@@ -344,25 +347,27 @@ AGSimpleBroker.prototype.exchange = function () {
   return this._exchangeClient;
 };
 
-AGSimpleBroker.prototype.subscribeSocket = async function (socket, channelName) {
+AGSimpleBroker.prototype.subscribeClient = async function (client, channelName) {
   if (!this._clientSubscribers[channelName]) {
     this._clientSubscribers[channelName] = {};
     this._clientSubscribersCounter[channelName] = 0;
-  }
-  if (!this._clientSubscribers[channelName][socket.id]) {
-    this._clientSubscribersCounter[channelName]++;
     this.emit('subscribe', {
       channel: channelName
     });
   }
-  this._clientSubscribers[channelName][socket.id] = socket;
+  if (!this._clientSubscribers[channelName][client.id]) {
+    this._clientSubscribersCounter[channelName]++;
+  }
+  this._clientSubscribers[channelName][client.id] = client;
 };
 
-AGSimpleBroker.prototype.unsubscribeSocket = async function (socket, channelName) {
+AGSimpleBroker.prototype.subscribeSocket = AGSimpleBroker.prototype.subscribeClient;
+
+AGSimpleBroker.prototype.unsubscribeClient = async function (client, channelName) {
   if (this._clientSubscribers[channelName]) {
-    if (this._clientSubscribers[channelName][socket.id]) {
+    if (this._clientSubscribers[channelName][client.id]) {
       this._clientSubscribersCounter[channelName]--;
-      delete this._clientSubscribers[channelName][socket.id];
+      delete this._clientSubscribers[channelName][client.id];
 
       if (this._clientSubscribersCounter[channelName] <= 0) {
         delete this._clientSubscribers[channelName];
@@ -374,6 +379,8 @@ AGSimpleBroker.prototype.unsubscribeSocket = async function (socket, channelName
     }
   }
 };
+
+AGSimpleBroker.prototype.unsubscribeSocket = AGSimpleBroker.prototype.unsubscribeClient;
 
 AGSimpleBroker.prototype.subscriptions = function () {
   return Object.keys(this._clientSubscribers);
@@ -413,10 +420,10 @@ AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, su
     }
   }
 
-  let subscriberSockets = this._clientSubscribers[channelName] || {};
+  let subscriberClients = this._clientSubscribers[channelName] || {};
 
-  Object.keys(subscriberSockets).forEach((i) => {
-    subscriberSockets[i].transmit('#publish', packet, transmitOptions);
+  Object.keys(subscriberClients).forEach((i) => {
+    subscriberClients[i].transmit('#publish', packet, transmitOptions);
   });
 
   if (!suppressEvent) {
