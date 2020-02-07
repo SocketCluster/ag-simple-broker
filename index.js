@@ -1,6 +1,6 @@
 const AsyncStreamEmitter = require('async-stream-emitter');
 const StreamDemux = require('stream-demux');
-let AGChannel = require('ag-channel');
+const AGChannel = require('ag-channel');
 
 function SimpleExchange(broker) {
   AsyncStreamEmitter.call(this);
