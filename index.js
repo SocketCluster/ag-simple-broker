@@ -423,7 +423,7 @@ AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, su
   let subscriberClients = this._clientSubscribers[channelName] || {};
 
   Object.keys(subscriberClients).forEach((i) => {
-    if (meta.author !== i) {
+    if (meta.author !== i) { // skip the author who invoked this publish event
       subscriberClients[i].transmit('#publish', packet, transmitOptions);
     }
   });
