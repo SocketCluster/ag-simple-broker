@@ -400,7 +400,7 @@ AGSimpleBroker.prototype.invokePublish = async function (channelName, data, supp
   return this.transmitPublish(channelName, data, suppressEvent, meta);
 };
 
-AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, suppressEvent, meta) {
+AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, suppressEvent, meta = {}) {
   let packet = {
     channel: channelName,
     data
@@ -423,7 +423,7 @@ AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, su
   let subscriberClients = this._clientSubscribers[channelName] || {};
 
   Object.keys(subscriberClients).forEach((i) => {
-    if (meta.author !== i) {
+    if (meta && meta.author !== i) {
       subscriberClients[i].transmit('#publish', packet, transmitOptions);
     }
   });
