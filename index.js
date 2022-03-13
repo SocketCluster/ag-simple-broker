@@ -396,11 +396,11 @@ AGSimpleBroker.prototype.setCodecEngine = function (codec) {
 
 // In this implementation of the broker engine, both invokePublish and transmitPublish
 // methods are the same. In alternative implementations, they could be different.
-AGSimpleBroker.prototype.invokePublish = async function (channelName, data, suppressEvent) {
-  return this.transmitPublish(channelName, data, suppressEvent);
+AGSimpleBroker.prototype.invokePublish = async function (channelName, data, suppressEvent, meta) {
+  return this.transmitPublish(channelName, data, suppressEvent, meta);
 };
 
-AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, suppressEvent) {
+AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, suppressEvent, meta) {
   let packet = {
     channel: channelName,
     data
@@ -423,7 +423,9 @@ AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, su
   let subscriberClients = this._clientSubscribers[channelName] || {};
 
   Object.keys(subscriberClients).forEach((i) => {
-    subscriberClients[i].transmit('#publish', packet, transmitOptions);
+    if (meta.author !== i) {
+      subscriberClients[i].transmit('#publish', packet, transmitOptions);
+    }
   });
 
   if (!suppressEvent) {
