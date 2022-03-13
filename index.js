@@ -52,12 +52,12 @@ SimpleExchange.prototype._triggerChannelUnsubscribe = function (channel) {
   }
 };
 
-SimpleExchange.prototype.transmitPublish = async function (channelName, data) {
-  return this._broker.transmitPublish(channelName, data);
+SimpleExchange.prototype.transmitPublish = async function (channelName, data, suppressEvent, meta) {
+  return this._broker.transmitPublish(channelName, data, suppressEvent, meta);
 };
 
-SimpleExchange.prototype.invokePublish = async function (channelName, data) {
-  return this._broker.invokePublish(channelName, data);
+SimpleExchange.prototype.invokePublish = async function (channelName, data, suppressEvent, meta) {
+  return this._broker.invokePublish(channelName, data, suppressEvent, meta);
 };
 
 SimpleExchange.prototype.subscribe = function (channelName) {
