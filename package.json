@@ -1,6 +1,6 @@
 {
   "name": "ag-simple-broker",
-  "version": "5.0.1",
+  "version": "6.0.0",
   "description": "Simple broker engine for Asyngular",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "ag-channel": "^5.0.0",
-    "async-stream-emitter": "^6.0.1",
-    "stream-demux": "^9.0.2"
+    "async-stream-emitter": "^7.0.0",
+    "stream-demux": "^10.0.0"
   }
 }
