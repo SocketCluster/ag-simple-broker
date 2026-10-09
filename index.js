@@ -221,9 +221,15 @@ SimpleExchange.prototype.getChannelOptions = function (channelName) {
 };
 
 SimpleExchange.prototype._getAllChannelStreamNames = function (channelName) {
+  // Streams are named `${channelName}/${eventName}`, so the match must end at
+  // the separator; otherwise the streams of nested channels match too.
+  let channelPrefix = `${channelName}/`;
   let streamNamesLookup = this._channelEventDemux.getConsumerStatsListAll()
   .filter((stats) => {
-    return stats.stream.indexOf(`${channelName}/`) === 0;
+    if (stats.stream.indexOf(channelPrefix) !== 0) {
+      return false;
+    }
+    return stats.stream.indexOf('/', channelPrefix.length) === -1;
   })
   .reduce((accumulator, stats) => {
     accumulator[stats.stream] = true;
@@ -406,12 +412,22 @@ AGSimpleBroker.prototype.setCodecEngine = function (codec) {
 };
 
 // In this implementation of the broker engine, both invokePublish and transmitPublish
-// methods are the same. In alternative implementations, they could be different.
+// publish the same way; they differ only in how they report failure.
 AGSimpleBroker.prototype.invokePublish = async function (channelName, data, suppressEvent) {
-  return this.transmitPublish(channelName, data, suppressEvent);
+  return this._publish(channelName, data, suppressEvent);
 };
 
+// Fire-and-forget: callers do not await it, so failures go to the error stream
+// rather than to a rejection which nothing would catch.
 AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, suppressEvent) {
+  try {
+    return await this._publish(channelName, data, suppressEvent);
+  } catch (error) {
+    this.emit('error', {error});
+  }
+};
+
+AGSimpleBroker.prototype._publish = async function (channelName, data, suppressEvent) {
   let packet = {
     channel: channelName,
     data
@@ -420,15 +436,10 @@ AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, su
 
   if (this._codec) {
     // Optimization
-    try {
-      transmitOptions.stringifiedData = this._codec.encode({
-        event: '#publish',
-        data: packet
-      });
-    } catch (error) {
-      this.emit('error', {error});
-      return;
-    }
+    transmitOptions.stringifiedData = this._codec.encode({
+      event: '#publish',
+      data: packet
+    });
   }
 
   let subscriberClients = this._clientSubscribers[channelName] || Object.create(null);
