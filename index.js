@@ -7,7 +7,14 @@ function SimpleExchange(broker) {
 
   this.id = 'exchange';
   this._broker = broker;
-  this._channelMap = {};
+  // Null-prototype objects are used for all maps which are keyed by channel
+  // name so that channel names which collide with Object.prototype members
+  // (such as __proto__, constructor or toString) are treated as ordinary
+  // channel names. With a plain object, a lookup such as
+  // this._channelMap[channelName] returns an inherited value for those names,
+  // which makes the truthiness checks throughout this file take the wrong
+  // branch.
+  this._channelMap = Object.create(null);
   this._channelEventDemux = new StreamDemux();
   this._channelDataDemux = new StreamDemux();
 }
@@ -332,8 +339,12 @@ function AGSimpleBroker() {
   this.isReady = false;
   this._codec = null;
   this._exchangeClient = new SimpleExchange(this);
-  this._clientSubscribers = {};
-  this._clientSubscribersCounter = {};
+  // See the note in SimpleExchange above; these maps are keyed by channel name.
+  // Previously, subscribing a client to a channel named __proto__ resolved
+  // this._clientSubscribers[channelName] to Object.prototype and wrote the
+  // client onto it, polluting every object in the process.
+  this._clientSubscribers = Object.create(null);
+  this._clientSubscribersCounter = Object.create(null);
 
   setTimeout(() => {
     this.isReady = true;
@@ -349,7 +360,7 @@ AGSimpleBroker.prototype.exchange = function () {
 
 AGSimpleBroker.prototype.subscribeClient = async function (client, channelName) {
   if (!this._clientSubscribers[channelName]) {
-    this._clientSubscribers[channelName] = {};
+    this._clientSubscribers[channelName] = Object.create(null);
     this._clientSubscribersCounter[channelName] = 0;
     this.emit('subscribe', {
       channel: channelName
@@ -420,7 +431,7 @@ AGSimpleBroker.prototype.transmitPublish = async function (channelName, data, su
     }
   }
 
-  let subscriberClients = this._clientSubscribers[channelName] || {};
+  let subscriberClients = this._clientSubscribers[channelName] || Object.create(null);
 
   Object.keys(subscriberClients).forEach((i) => {
     subscriberClients[i].transmit('#publish', packet, transmitOptions);

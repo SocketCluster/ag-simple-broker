@@ -17,6 +17,7 @@
   "dependencies": {
     "ag-channel": "^5.0.0",
     "async-stream-emitter": "^7.0.1",
-    "stream-demux": "^10.0.1"
+    "stream-demux": "^10.2.0",
+    "writable-consumable-stream": "^5.0.0"
   }
 }
